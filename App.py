@@ -37,6 +37,10 @@ class App(object):
         s.persistant = False
 
     def launch(s):
+        coef_line_color = 255 / (2 * math.pi)
+        coef_point_color_w = 255 / WINDOW_WIDTH
+        coef_point_color_h = 255 / WINDOW_HEIGHT
+
         while not s.handle_loop():
             s.angle += s.angle_speed
             if 2 * math.pi - 0.01 < s.angle < 2 * math.pi + 0.01:
@@ -50,29 +54,31 @@ class App(object):
             delta = time.time() - s.last_pivot_change_time
             size = 20 - (5 * delta) if delta < 1 else 10
 
-            trans = (angle + 4) * (200 / 7)
-            trans2 = (angle + 4) * (150 / 7)
-            line_color = (trans, 255 - trans2, trans)
-
-            pygame.draw.aaline(s.d, line_color, s.pivot, (s.pivot[0] + x, s.pivot[1] + y))
-            pygame.draw.aaline(s.d, line_color, s.pivot, (s.pivot[0] - x, s.pivot[1] - y))
+            trans = (angle + math.pi) * coef_line_color
+            line_color = (trans, 255 - trans, trans)
 
             for idx, point in enumerate(s.points):
-                if point == s.pivot:
-                    pygame.draw.circle(s.d, WHITE, point, int(size))
-                    continue
-                color = (
-                        point[0] * (255 / WINDOW_WIDTH),
-                        point[1] * (255 / WINDOW_HEIGHT),
-                        255 - (point[1] * (255 / WINDOW_HEIGHT))
-                    )
-                pygame.draw.circle(s.d, color, point, 10)
-
+                if point == s.pivot: continue
                 if angle < s.point_angles[idx] < angle + s.angle_speed or inv_angle < s.point_angles[idx] < inv_angle + s.angle_speed:
                     s.pivot = point
                     s.point_angles = [math.atan2(point[1] - s.pivot[1], point[0] - s.pivot[0]) for point in s.points]
                     s.last_pivot_change_time = time.time()
                     break
+
+            if not s.persistant:
+                s.d.fill(BLACK)
+            for point in s.points:
+                if point == s.pivot:
+                    pygame.draw.circle(s.d, WHITE, point, int(size))
+                else:
+                    color = (
+                            point[0] * coef_point_color_w,
+                            point[1] * coef_point_color_h,
+                            255 - (point[1] * coef_point_color_w)
+                        )
+                    pygame.draw.circle(s.d, color, point, 10)
+            pygame.draw.aaline(s.d, line_color, s.pivot, (s.pivot[0] + x, s.pivot[1] + y))
+            pygame.draw.aaline(s.d, line_color, s.pivot, (s.pivot[0] - x, s.pivot[1] - y))
 
     def handle_loop(s):
         pygame.display.update()
@@ -86,9 +92,6 @@ class App(object):
         if delta < s.deltaTime:
             time.sleep(s.deltaTime - delta)
         s.endTime = time.time()
-
-        if not s.persistant:
-            s.d.fill(BLACK)
 
     def handle_input(s):
         keys = pygame.key.get_pressed()
